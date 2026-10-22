@@ -1,19 +1,23 @@
 # blue-machines-fde-web
 
-Customer-facing web app for the loan servicing assistant: sign in with a registered mobile number, ask
-questions in a chat, confirm actions, and see accounts and open requests update alongside.
+Customer-facing web app for the AI loan servicing assistant: sign in with a registered mobile number,
+ask by text or voice, confirm actions, and see accounts and open requests update alongside.
 
-Built with Next.js (App Router), React and Tailwind CSS. It talks to the Python API in `../engine/server.py`.
+Built with Next.js (App Router), React and Tailwind CSS. It talks to the assistant API in the backend
+repository: [loan-servicing-ai](https://github.com/GovindSinghBisht/loan-servicing-ai).
 
 ## Run
 
+Start the backend first (mock enterprise systems and the assistant API on port 8000; see its README).
+Then:
+
 ```bash
 npm install
-npm run dev          # http://localhost:3000
+cp .env.example .env.local     # only needed if the API is not on http://127.0.0.1:8000
+npm run dev                    # http://localhost:3000
 ```
 
-The API must be running (see the root README). Point the app at a different API with
-`NEXT_PUBLIC_API_URL` (default `http://127.0.0.1:8000`).
+Sign in with a demo customer (OTP `123456`). Production build: `npm run build && npm start`.
 
 ## What the UI shows
 
@@ -45,3 +49,11 @@ The API must be running (see the root README). Point the app at a different API 
 | `src/lib/speech.ts` | Speech recognition, sentence splitting, streamed speech output |
 | `src/components/useVoice.ts` | Voice turn logic: barge-in, echo filter, fillers, latency timeline |
 | `src/components/VoiceBar.tsx` | Voice mode controls and status |
+
+## Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | `http://127.0.0.1:8000` | Base URL of the assistant API |
+
+The API must allow this app's origin (backend `WEB_ORIGINS`, default `http://localhost:3000`).
