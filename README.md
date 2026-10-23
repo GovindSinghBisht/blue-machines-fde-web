@@ -31,6 +31,9 @@ Sign in with a demo customer (OTP `123456`). Production build: `npm run build &&
   unavailable rather than failing.
 - **Latency details** (header toggle): time to first word, total, model vs tool time, and per-system calls
   and retries for each reply.
+- **Sessions**: signing in returns a session token kept in the tab's `sessionStorage` and sent in the
+  `Authorization` header. A page refresh keeps the customer signed in with the conversation on screen;
+  closing the tab or signing out ends it (sign-out revokes the token on the server).
 - **Recent conversations**: the customer's last few conversations (the backend keeps five) appear in the
   account panel and open as a read-only transcript.
 - **Guardrail notes**: if a card number, Aadhaar or PAN was removed from a message, or a figure in a reply

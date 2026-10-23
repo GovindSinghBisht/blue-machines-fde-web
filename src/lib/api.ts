@@ -1,6 +1,7 @@
 import type { Account, BackendStat, ConversationSummary, DemoCustomer, Guardrail, Transcript, TurnMetrics } from "./types";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+const TOKEN_KEY = "loan-servicing-session";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -8,16 +9,48 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * The login session token. Kept in sessionStorage so a page refresh keeps the customer signed in, while
+ * closing the tab ends it. Sent only in the Authorization header, never in URLs.
+ */
+let token: string | null = null;
+
+export function savedToken(): string | null {
+  if (token) return token;
+  try {
+    token = sessionStorage.getItem(TOKEN_KEY);
+  } catch {
+    token = null;
+  }
+  return token;
+}
+
+function setToken(value: string | null) {
+  token = value;
+  try {
+    if (value) sessionStorage.setItem(TOKEN_KEY, value);
+    else sessionStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* storage unavailable: the session still works until the page reloads */
+  }
+}
+
+function authHeaders(): Record<string, string> {
+  const t = savedToken();
+  return t ? { authorization: `Bearer ${t}` } : {};
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, {
       ...init,
-      headers: { "content-type": "application/json", ...init?.headers },
+      headers: { "content-type": "application/json", ...authHeaders(), ...init?.headers },
     });
   } catch {
     throw new ApiError(0, "Can't reach the service. Check that the API is running.");
   }
+  if (res.status === 401) setToken(null);
   if (!res.ok) throw new ApiError(res.status, await detail(res));
   return res.json() as Promise<T>;
 }
@@ -35,18 +68,15 @@ export function getHealth() {
   return request<{ status: string; business_date: string; tts: "openai" | "browser" }>("/api/health");
 }
 
-export function setChannel(sessionId: string, channel: "text" | "voice") {
-  return request<{ channel: string }>(`/api/sessions/${sessionId}/channel`, {
-    method: "POST",
-    body: JSON.stringify({ channel }),
-  });
+export function setChannel(channel: "text" | "voice") {
+  return request<{ channel: string }>("/api/channel", { method: "POST", body: JSON.stringify({ channel }) });
 }
 
 /** Synthesised speech for one sentence (server TTS). Rejects so the caller can fall back to the browser voice. */
-export async function fetchSpeech(sessionId: string, text: string): Promise<Blob> {
-  const res = await fetch(`${API_URL}/api/sessions/${sessionId}/tts`, {
+export async function fetchSpeech(text: string): Promise<Blob> {
+  const res = await fetch(`${API_URL}/api/tts`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...authHeaders() },
     body: JSON.stringify({ text }),
   });
   if (!res.ok) throw new ApiError(res.status, "Speech unavailable");
@@ -63,38 +93,48 @@ export type VoiceTurnMetrics = {
   tts: string;
 };
 
-export function postVoiceMetrics(sessionId: string, m: VoiceTurnMetrics) {
-  return request<{ ok: boolean }>(`/api/sessions/${sessionId}/voice-metrics`, {
-    method: "POST",
-    body: JSON.stringify(m),
-  }).catch(() => undefined);
+export function postVoiceMetrics(m: VoiceTurnMetrics) {
+  return request<{ ok: boolean }>("/api/voice-metrics", { method: "POST", body: JSON.stringify(m) }).catch(() => undefined);
 }
 
 export function getDemoCustomers() {
   return request<{ customers: DemoCustomer[]; otp_hint: string }>("/api/demo-customers");
 }
 
-export function login(phone: string, otp: string) {
-  return request<{ session_id: string; customer: Account["customer"]; account: Account }>("/api/login", {
-    method: "POST",
-    body: JSON.stringify({ phone, otp }),
-  });
+export async function login(phone: string, otp: string) {
+  const r = await request<{ token: string; expires_at: string; customer: Account["customer"]; account: Account }>(
+    "/api/login",
+    { method: "POST", body: JSON.stringify({ phone, otp }) },
+  );
+  setToken(r.token);
+  return r;
 }
 
-export function getAccount(sessionId: string) {
-  return request<Account>(`/api/sessions/${sessionId}/account`);
+/** Restore the signed-in customer after a refresh. Resolves to null when there is no valid session. */
+export async function restoreSession(): Promise<{ account: Account } | null> {
+  if (!savedToken()) return null;
+  try {
+    return await request<{ account: Account }>("/api/me");
+  } catch {
+    return null;
+  }
 }
 
-export function getConversations(sessionId: string) {
-  return request<{ conversations: ConversationSummary[] }>(`/api/sessions/${sessionId}/conversations`);
+export async function logout() {
+  await request<{ ok: boolean }>("/api/logout", { method: "POST" }).catch(() => undefined);
+  setToken(null);
 }
 
-export function getConversation(sessionId: string, conversationId: string) {
-  return request<Transcript>(`/api/sessions/${sessionId}/conversations/${conversationId}`);
+export function getAccount() {
+  return request<Account>("/api/account");
 }
 
-export function logout(sessionId: string) {
-  return request<{ ok: boolean }>(`/api/sessions/${sessionId}`, { method: "DELETE" }).catch(() => undefined);
+export function getConversations() {
+  return request<{ conversations: ConversationSummary[] }>("/api/conversations");
+}
+
+export function getConversation(conversationId: string) {
+  return request<Transcript>(`/api/conversations/${conversationId}`);
 }
 
 export type TurnHandlers = {
@@ -116,12 +156,12 @@ export type TurnHandlers = {
 };
 
 /** POST a message and dispatch the server-sent events as they arrive (EventSource can't POST). */
-export async function sendMessage(sessionId: string, text: string, on: TurnHandlers, signal?: AbortSignal): Promise<void> {
+export async function sendMessage(text: string, on: TurnHandlers, signal?: AbortSignal): Promise<void> {
   let res: Response;
   try {
-    res = await fetch(`${API_URL}/api/sessions/${sessionId}/messages`, {
+    res = await fetch(`${API_URL}/api/messages`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...authHeaders() },
       body: JSON.stringify({ text }),
       signal,
     });
@@ -129,6 +169,7 @@ export async function sendMessage(sessionId: string, text: string, on: TurnHandl
     if (signal?.aborted) throw e;
     throw new ApiError(0, "Can't reach the service. Check your connection and try again.");
   }
+  if (res.status === 401) setToken(null);
   if (!res.ok || !res.body) throw new ApiError(res.status, await detail(res));
 
   const reader = res.body.getReader();

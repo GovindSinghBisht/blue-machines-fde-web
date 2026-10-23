@@ -31,7 +31,7 @@ export default function SignIn({ onSignedIn }: Props) {
     setError(null);
     try {
       const r = await login(p, code);
-      onSignedIn({ sessionId: r.session_id, account: r.account });
+      onSignedIn({ sessionId: r.token, account: r.account });
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);

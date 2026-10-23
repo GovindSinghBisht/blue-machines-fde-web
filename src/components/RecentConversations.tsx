@@ -11,7 +11,7 @@ export default function RecentConversations({ sessionId, refreshKey }: { session
   const [open, setOpen] = useState<Transcript | null>(null);
 
   useEffect(() => {
-    getConversations(sessionId)
+    getConversations()
       .then((r) => setItems(r.conversations))
       .catch(() => undefined);
   }, [sessionId, refreshKey]);
@@ -28,7 +28,7 @@ export default function RecentConversations({ sessionId, refreshKey }: { session
           {past.map((c) => (
             <li key={c.conversation_id}>
               <button
-                onClick={() => getConversation(sessionId, c.conversation_id).then(setOpen).catch(() => undefined)}
+                onClick={() => getConversation(c.conversation_id).then(setOpen).catch(() => undefined)}
                 className="w-full rounded-xl border border-line bg-surface p-3 text-left hover:border-accent"
               >
                 <p className="truncate text-sm font-medium">{c.title ?? "Conversation"}</p>

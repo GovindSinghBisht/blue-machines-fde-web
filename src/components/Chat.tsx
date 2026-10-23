@@ -9,7 +9,7 @@ import { suggestionsFor } from "@/lib/suggestions";
 import type { ChatMessage } from "@/lib/types";
 
 type Props = {
-  sessionId: string;
+  initialMessages?: ChatMessage[];
   customerId?: string;
   firstName?: string;
   showDetails: boolean;
@@ -20,15 +20,14 @@ type Props = {
 let nextId = 0;
 const newId = () => `m${++nextId}`;
 
-export default function Chat({ sessionId, customerId, firstName, showDetails, onTurnComplete, onSessionExpired }: Props) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export default function Chat({ initialMessages = [], customerId, firstName, showDetails, onTurnComplete, onSessionExpired }: Props) {
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const inFlight = useRef<AbortController | null>(null);
   const voice = useVoice({
-    sessionId,
     send: (text, hooks) => void send(text, hooks),
     interrupt: () => inFlight.current?.abort(),
   });
@@ -58,7 +57,7 @@ export default function Chat({ sessionId, customerId, firstName, showDetails, on
     ]);
 
     try {
-      await sendMessage(sessionId, trimmed, {
+      await sendMessage(trimmed, {
         onTool: ({ name, label }) =>
           patch(reply, (m) => ({ ...m, activities: [...m.activities, { name, label, status: "running" }] })),
         onToolResult: ({ name, ok, error, system }) =>

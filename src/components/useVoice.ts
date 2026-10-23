@@ -14,7 +14,6 @@ export type VoiceTurnHooks = {
 };
 
 type Props = {
-  sessionId: string;
   /** Send a customer utterance through the normal chat pipeline, with voice hooks. */
   send: (text: string, hooks: VoiceTurnHooks) => void;
   /** Abort the in-flight turn (the server cancels it and repairs the conversation). */
@@ -33,7 +32,7 @@ type Timeline = {
 
 const BARGE_IN_MIN_WORDS = 2;
 
-export function useVoice({ sessionId, send, interrupt }: Props) {
+export function useVoice({ send, interrupt }: Props) {
   const [state, setState] = useState<VoiceState>("off");
   const [interim, setInterim] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -66,9 +65,9 @@ export function useVoice({ sessionId, send, interrupt }: Props) {
         tts,
       };
       setLastTurn(m);
-      void postVoiceMetrics(sessionId, m);
+      void postVoiceMetrics(m);
     },
-    [sessionId, tts],
+    [tts],
   );
 
   /** Speech the microphone picked up from our own speaker should not count as the customer talking. */
@@ -167,8 +166,8 @@ export function useVoice({ sessionId, send, interrupt }: Props) {
       /* keep browser voice */
     }
     setTts(mode);
-    await setChannel(sessionId, "voice").catch(() => undefined);
-    speaker.current = new Speaker(sessionId, mode, {
+    await setChannel("voice").catch(() => undefined);
+    speaker.current = new Speaker(mode, {
       start: (filler) => {
         const t = turn.current;
         const now = performance.now();
@@ -194,7 +193,7 @@ export function useVoice({ sessionId, send, interrupt }: Props) {
     });
     listener.current.start();
     setState("listening");
-  }, [sessionId, finishTurn]);
+  }, [finishTurn]);
 
   const stop = useCallback(() => {
     listener.current?.stop();
@@ -206,8 +205,8 @@ export function useVoice({ sessionId, send, interrupt }: Props) {
     listener.current = null;
     setInterim("");
     setState("off");
-    void setChannel(sessionId, "text").catch(() => undefined);
-  }, [interrupt, finishTurn, sessionId]);
+    void setChannel("text").catch(() => undefined);
+  }, [interrupt, finishTurn]);
 
   // Callbacks change identity as state changes; the long-lived listener calls through refs.
   useEffect(() => {

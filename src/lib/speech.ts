@@ -62,7 +62,6 @@ export class Speaker {
   spokenText = "";
 
   constructor(
-    private sessionId: string,
     private mode: "openai" | "browser",
     private on: { start: (filler: boolean) => void; idle: () => void },
   ) {}
@@ -75,7 +74,7 @@ export class Speaker {
     const text = speakable(raw);
     if (!text) return;
     const item: Item = { text, filler };
-    if (this.mode === "openai") item.audio = fetchSpeech(this.sessionId, text).catch(() => null);
+    if (this.mode === "openai") item.audio = fetchSpeech(text).catch(() => null);
     // Once the real answer arrives, fillers that haven't started yet are pointless: drop them.
     if (!filler) this.queue = this.queue.filter((q) => !q.filler);
     this.queue.push(item);

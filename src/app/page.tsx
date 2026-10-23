@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AccountPanel from "@/components/AccountPanel";
 import Chat from "@/components/Chat";
 import RecentConversations from "@/components/RecentConversations";
 import SignIn from "@/components/SignIn";
-import { getAccount, logout } from "@/lib/api";
-import type { Account } from "@/lib/types";
+import { getAccount, getConversation, getConversations, logout, restoreSession, savedToken } from "@/lib/api";
+import type { Account, ChatMessage } from "@/lib/types";
 
 export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -16,13 +16,41 @@ export default function Home() {
   const [mobileTab, setMobileTab] = useState<"chat" | "accounts">("chat");
   const [notice, setNotice] = useState<string | null>(null);
   const [turns, setTurns] = useState(0);
+  const [restoring, setRestoring] = useState(true);
+  const [restoredMessages, setRestoredMessages] = useState<ChatMessage[]>([]);
+
+  // A refresh keeps the customer signed in: the tab's saved token is checked with the API, and the
+  // conversation so far is shown again.
+  useEffect(() => {
+    (async () => {
+      const r = await restoreSession();
+      if (r) {
+        const current = (await getConversations().catch(() => null))?.conversations.find((c) => c.current);
+        const transcript = current ? await getConversation(current.conversation_id).catch(() => null) : null;
+        setRestoredMessages(
+          (transcript?.messages ?? []).map((m, i) => ({
+            id: `restored-${i}`,
+            role: m.role,
+            text: m.content,
+            activities: [],
+            sources: [],
+            streaming: false,
+            interrupted: m.interrupted,
+          })),
+        );
+        setSessionId(savedToken());
+        setAccount(r.account);
+      }
+      setRestoring(false);
+    })();
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!sessionId) return;
     setRefreshing(true);
     setTurns((n) => n + 1);
     try {
-      setAccount(await getAccount(sessionId));
+      setAccount(await getAccount());
     } catch {
       // Keep showing the last snapshot; the chat reports outages itself.
     } finally {
@@ -31,10 +59,15 @@ export default function Home() {
   }, [sessionId]);
 
   function signOut(message: string | null = null) {
-    if (sessionId) logout(sessionId);
+    if (sessionId) void logout();
     setSessionId(null);
     setAccount(null);
+    setRestoredMessages([]);
     setNotice(message);
+  }
+
+  if (restoring) {
+    return <main className="grid min-h-full place-items-center text-sm text-muted">Loading…</main>;
   }
 
   if (!sessionId) {
@@ -95,7 +128,7 @@ export default function Home() {
       <div className="flex min-h-0 flex-1">
         <div className={`min-w-0 flex-1 ${mobileTab === "chat" ? "block" : "hidden"} lg:block`}>
           <Chat
-            sessionId={sessionId}
+            initialMessages={restoredMessages}
             customerId={customer?.customer_id}
             firstName={customer?.first_name}
             showDetails={showDetails}
