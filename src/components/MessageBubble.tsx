@@ -61,6 +61,13 @@ export default function MessageBubble({ message, showDetails, busy, onConfirm, o
           </p>
         )}
 
+        {!message.streaming &&
+          guardrailNotes(message.guardrails).map((note) => (
+            <p key={note.text} className={`rounded-lg px-3 py-2 text-xs ${note.warn ? "bg-warn-soft text-warn" : "bg-surface-2 text-muted"}`}>
+              {note.text}
+            </p>
+          ))}
+
         {message.action && (
           <ActionCard action={message.action} busy={busy} onConfirm={onConfirm} onCancel={onCancel} />
         )}
@@ -174,6 +181,25 @@ function TypingDots() {
       ))}
     </span>
   );
+}
+
+const GUARDRAIL_NOTES: Record<string, { text: string; warn: boolean }> = {
+  redacted_card_number: { text: "We removed a card number from your message to keep it safe.", warn: false },
+  redacted_aadhaar: { text: "We removed an Aadhaar number from your message to keep it safe.", warn: false },
+  redacted_pan: { text: "We removed a PAN from your message to keep it safe.", warn: false },
+  ungrounded_figures: {
+    text: "Some figures in this answer couldn't be automatically matched to your records. Please check before acting on them.",
+    warn: true,
+  },
+  unknown_account_ids: { text: "This answer mentions an account we couldn't match to your profile.", warn: true },
+};
+
+/** Customer-facing notes for guardrail decisions; internal ones (e.g. prompt-injection flags) stay hidden. */
+function guardrailNotes(guardrails: ChatMessage["guardrails"]) {
+  const seen = new Set<string>();
+  return (guardrails ?? [])
+    .map((g) => GUARDRAIL_NOTES[g.rule])
+    .filter((n): n is { text: string; warn: boolean } => Boolean(n) && !seen.has(n.text) && Boolean(seen.add(n.text)));
 }
 
 /** Repeated calls to the same tool in one turn show once, with the latest status. */

@@ -31,6 +31,10 @@ Sign in with a demo customer (OTP `123456`). Production build: `npm run build &&
   unavailable rather than failing.
 - **Latency details** (header toggle): time to first word, total, model vs tool time, and per-system calls
   and retries for each reply.
+- **Recent conversations**: the customer's last few conversations (the backend keeps five) appear in the
+  account panel and open as a read-only transcript.
+- **Guardrail notes**: if a card number, Aadhaar or PAN was removed from a message, or a figure in a reply
+  couldn't be matched to the customer's records, the reply says so.
 - **Voice mode** (mic button): talk instead of typing in the same conversation. Replies are spoken as
   they stream; talk at any time to interrupt; slow lookups get a short spoken filler. Needs a browser with
   speech recognition (Chrome or Edge); use headphones so the assistant does not hear itself. The voice bar
@@ -49,6 +53,7 @@ Sign in with a demo customer (OTP `123456`). Production build: `npm run build &&
 | `src/lib/speech.ts` | Speech recognition, sentence splitting, streamed speech output |
 | `src/components/useVoice.ts` | Voice turn logic: barge-in, echo filter, fillers, latency timeline |
 | `src/components/VoiceBar.tsx` | Voice mode controls and status |
+| `src/components/RecentConversations.tsx` | Past conversations list and transcript view |
 
 ## Configuration
 

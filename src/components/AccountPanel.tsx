@@ -1,7 +1,15 @@
 import { PRODUCT_LABEL, date, humanize, rupees, SYSTEM_LABEL } from "@/lib/format";
 import type { Account, Card, Loan, Ticket } from "@/lib/types";
 
-export default function AccountPanel({ account, refreshing }: { account: Account | null; refreshing: boolean }) {
+export default function AccountPanel({
+  account,
+  refreshing,
+  children,
+}: {
+  account: Account | null;
+  refreshing: boolean;
+  children?: React.ReactNode;
+}) {
   if (!account) return null;
   return (
     <aside className="h-full overflow-y-auto px-4 py-5 sm:px-5">
@@ -39,6 +47,7 @@ export default function AccountPanel({ account, refreshing }: { account: Account
           ))}
         </ul>
       )}
+      {children}
     </aside>
   );
 }

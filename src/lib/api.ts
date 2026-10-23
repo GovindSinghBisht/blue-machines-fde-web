@@ -1,4 +1,4 @@
-import type { Account, DemoCustomer, TurnMetrics, BackendStat } from "./types";
+import type { Account, BackendStat, ConversationSummary, DemoCustomer, Guardrail, Transcript, TurnMetrics } from "./types";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
@@ -85,6 +85,14 @@ export function getAccount(sessionId: string) {
   return request<Account>(`/api/sessions/${sessionId}/account`);
 }
 
+export function getConversations(sessionId: string) {
+  return request<{ conversations: ConversationSummary[] }>(`/api/sessions/${sessionId}/conversations`);
+}
+
+export function getConversation(sessionId: string, conversationId: string) {
+  return request<Transcript>(`/api/sessions/${sessionId}/conversations/${conversationId}`);
+}
+
 export function logout(sessionId: string) {
   return request<{ ok: boolean }>(`/api/sessions/${sessionId}`, { method: "DELETE" }).catch(() => undefined);
 }
@@ -102,6 +110,7 @@ export type TurnHandlers = {
     backend: Record<string, BackendStat>;
     refused: boolean;
     pending_actions: string[];
+    guardrails?: Guardrail[];
   }) => void;
   onError: (message: string) => void;
 };

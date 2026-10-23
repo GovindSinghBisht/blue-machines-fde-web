@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import AccountPanel from "@/components/AccountPanel";
 import Chat from "@/components/Chat";
+import RecentConversations from "@/components/RecentConversations";
 import SignIn from "@/components/SignIn";
 import { getAccount, logout } from "@/lib/api";
 import type { Account } from "@/lib/types";
@@ -14,10 +15,12 @@ export default function Home() {
   const [showDetails, setShowDetails] = useState(false);
   const [mobileTab, setMobileTab] = useState<"chat" | "accounts">("chat");
   const [notice, setNotice] = useState<string | null>(null);
+  const [turns, setTurns] = useState(0);
 
   const refresh = useCallback(async () => {
     if (!sessionId) return;
     setRefreshing(true);
+    setTurns((n) => n + 1);
     try {
       setAccount(await getAccount(sessionId));
     } catch {
@@ -103,7 +106,9 @@ export default function Home() {
         <div
           className={`w-full border-l border-line bg-background lg:block lg:w-[360px] ${mobileTab === "accounts" ? "block" : "hidden"}`}
         >
-          <AccountPanel account={account} refreshing={refreshing} />
+          <AccountPanel account={account} refreshing={refreshing}>
+            <RecentConversations sessionId={sessionId} refreshKey={turns} />
+          </AccountPanel>
         </div>
       </div>
     </div>

@@ -83,7 +83,15 @@ export default function Chat({ sessionId, customerId, firstName, showDetails, on
           setMessages((all) =>
             all.map((m) => {
               if (m.id === reply)
-                return { ...m, text: d.text || m.text, sources: d.sources, metrics: d.metrics, backend: d.backend, streaming: false };
+                return {
+                  ...m,
+                  text: d.text || m.text,
+                  sources: d.sources,
+                  metrics: d.metrics,
+                  backend: d.backend,
+                  guardrails: d.guardrails,
+                  streaming: false,
+                };
               // An earlier proposal the engine no longer holds was confirmed or cancelled by this turn.
               if (m.action?.state === "pending" && !d.pending_actions.includes(m.action.action_id))
                 return { ...m, action: { ...m.action, state: outcome } };

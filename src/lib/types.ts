@@ -85,5 +85,26 @@ export type ChatMessage = {
   backend?: Record<string, BackendStat>;
   streaming: boolean;
   interrupted?: boolean;
+  guardrails?: Guardrail[];
   error?: string;
+};
+
+export type Guardrail = { stage: string; rule: string; severity: "info" | "warn" | "block"; detail: Record<string, unknown> };
+
+export type ConversationSummary = {
+  conversation_id: string;
+  title: string | null;
+  channel: string;
+  turns: number;
+  started_at: string;
+  last_active_at: string;
+  current: boolean;
+};
+
+export type Transcript = {
+  conversation_id: string;
+  title: string | null;
+  started_at: string;
+  turns: number;
+  messages: { turn: number; role: "user" | "assistant"; content: string; interrupted: boolean; tools: string[]; created_at: string }[];
 };
