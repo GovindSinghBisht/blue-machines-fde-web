@@ -19,6 +19,10 @@ npm run dev                    # http://localhost:3000
 
 Sign in with a demo customer (OTP `123456`). Production build: `npm run build && npm start`.
 
+**Docker:** the `Dockerfile` builds a standalone production image. The backend repo's `docker-compose.yml`
+builds it together with the API and the HTTPS proxy, with the API on the same origin (`/api`). When the
+server sets an access code, the sign-in screen asks for it.
+
 ## What the UI shows
 
 - **Live progress**: while the assistant works, each system lookup appears as a step ("Checking payment

@@ -65,7 +65,9 @@ async function detail(res: Response): Promise<string> {
 }
 
 export function getHealth() {
-  return request<{ status: string; business_date: string; tts: "openai" | "browser" }>("/api/health");
+  return request<{ status: string; business_date: string; tts: "openai" | "browser"; access_code_required?: boolean }>(
+    "/api/health",
+  );
 }
 
 export function setChannel(channel: "text" | "voice") {
@@ -101,10 +103,10 @@ export function getDemoCustomers() {
   return request<{ customers: DemoCustomer[]; otp_hint: string }>("/api/demo-customers");
 }
 
-export async function login(phone: string, otp: string) {
+export async function login(phone: string, otp: string, accessCode?: string) {
   const r = await request<{ token: string; expires_at: string; customer: Account["customer"]; account: Account }>(
     "/api/login",
-    { method: "POST", body: JSON.stringify({ phone, otp }) },
+    { method: "POST", body: JSON.stringify({ phone, otp, access_code: accessCode || undefined }) },
   );
   setToken(r.token);
   return r;

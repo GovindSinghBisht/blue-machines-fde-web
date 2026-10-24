@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getDemoCustomers, login } from "@/lib/api";
+import { getDemoCustomers, getHealth, login } from "@/lib/api";
 import type { Account, DemoCustomer } from "@/lib/types";
 
 type Props = {
@@ -16,8 +16,14 @@ export default function SignIn({ onSignedIn }: Props) {
   const [otpHint, setOtpHint] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A public deployment can require an access code (shared with invited reviewers) before sign-in.
+  const [codeRequired, setCodeRequired] = useState(false);
+  const [accessCode, setAccessCode] = useState("");
 
   useEffect(() => {
+    getHealth()
+      .then((h) => setCodeRequired(Boolean(h.access_code_required)))
+      .catch(() => {});
     getDemoCustomers()
       .then((r) => {
         setDemo(r.customers);
@@ -27,10 +33,14 @@ export default function SignIn({ onSignedIn }: Props) {
   }, []);
 
   async function verify(p = phone, code = otp) {
+    if (codeRequired && !accessCode.trim()) {
+      setError("Enter the access code you were given.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      const r = await login(p, code);
+      const r = await login(p, code, accessCode.trim());
       onSignedIn({ sessionId: r.token, account: r.account });
     } catch (e) {
       setError((e as Error).message);
@@ -70,6 +80,20 @@ export default function SignIn({ onSignedIn }: Props) {
               else verify();
             }}
           >
+            {codeRequired && (
+              <label className="block">
+                <span className="text-sm font-medium">Access code</span>
+                <input
+                  className="mt-1.5 w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent-soft"
+                  autoComplete="off"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
+                  required
+                />
+                <span className="mt-1.5 block text-xs text-muted">Shared with you along with the demo link.</span>
+              </label>
+            )}
+
             <label className="block">
               <span className="text-sm font-medium">Mobile number</span>
               <input
