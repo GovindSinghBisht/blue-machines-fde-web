@@ -34,6 +34,8 @@ Sign in with a demo customer (OTP `123456`). Production build: `npm run build &&
 - **Sessions**: signing in returns a session token kept in the tab's `sessionStorage` and sent in the
   `Authorization` header. A page refresh keeps the customer signed in with the conversation on screen;
   closing the tab or signing out ends it (sign-out revokes the token on the server).
+- **Documents**: when the assistant obtains a repayment statement from the loan system, a download card
+  appears in the reply; the PDF is fetched with the session token, so links cannot be shared or reused.
 - **Recent conversations**: the customer's last few conversations (the backend keeps five) appear in the
   account panel and open as a read-only transcript.
 - **Guardrail notes**: if a card number, Aadhaar or PAN was removed from a message, or a figure in a reply

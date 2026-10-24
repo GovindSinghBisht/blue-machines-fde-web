@@ -125,6 +125,19 @@ export async function logout() {
   setToken(null);
 }
 
+/** Download a lender-issued document with the session token (a plain link could not carry it). */
+export async function downloadDocument(documentId: string, fileName: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/documents/${documentId}`, { headers: authHeaders() });
+  if (res.status === 401) setToken(null);
+  if (!res.ok) throw new ApiError(res.status, res.status === 404 ? "Document not found." : "Download failed.");
+  const url = URL.createObjectURL(await res.blob());
+  const a = Object.assign(document.createElement("a"), { href: url, download: fileName });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
 export function getAccount() {
   return request<Account>("/api/account");
 }
@@ -142,6 +155,7 @@ export type TurnHandlers = {
   onToolResult: (e: { name: string; ok: boolean; error?: string | null; system?: string | null; sources: string[] }) => void;
   onAction: (e: { action_id: string; summary: string; details: Record<string, unknown> }) => void;
   onFiller?: (text: string) => void;
+  onDocument?: (doc: { document_id: string; file_name: string; financial_year?: string; loan_id?: string }) => void;
   onText: (delta: string) => void;
   onDone: (e: {
     text: string;
@@ -205,6 +219,8 @@ function dispatch(block: string, on: TurnHandlers) {
       return on.onAction(payload);
     case "filler":
       return on.onFiller?.(payload.text);
+    case "document":
+      return on.onDocument?.(payload);
     case "text":
       return on.onText(payload.delta);
     case "done":

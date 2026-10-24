@@ -5,6 +5,7 @@ const BY_CUSTOMER: Record<string, string[]> = {
     "If I prepay ₹50,000 today, how much would I save?",
     "Show payments that failed in the last six months",
     "Can you waive my May bounce charge?",
+    "Send me my repayment statement for last year",
   ],
   CUST100002: [
     "Why was I charged a late fee on my card?",
@@ -22,6 +23,7 @@ const BY_CUSTOMER: Record<string, string[]> = {
     "What's my EMI?",
     "What are my options on my personal loan?",
     "How much to close my personal loan today?",
+    "I need my home loan statement for FY 2025-26",
   ],
 };
 

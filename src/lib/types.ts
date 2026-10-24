@@ -86,8 +86,11 @@ export type ChatMessage = {
   streaming: boolean;
   interrupted?: boolean;
   guardrails?: Guardrail[];
+  documents?: DocumentRef[];
   error?: string;
 };
+
+export type DocumentRef = { document_id: string; file_name: string; financial_year?: string; loan_id?: string };
 
 export type Guardrail = { stage: string; rule: string; severity: "info" | "warn" | "block"; detail: Record<string, unknown> };
 

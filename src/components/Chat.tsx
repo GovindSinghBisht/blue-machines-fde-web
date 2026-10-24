@@ -72,6 +72,7 @@ export default function Chat({ initialMessages = [], customerId, firstName, show
           }),
         onAction: (a) => patch(reply, (m) => ({ ...m, action: { ...a, state: "pending" } })),
         onFiller: (f) => hooks?.onFiller(f),
+        onDocument: (doc) => patch(reply, (m) => ({ ...m, documents: [...(m.documents ?? []), doc] })),
         onText: (delta) => {
           hooks?.onText(delta);
           patch(reply, (m) => ({ ...m, text: m.text + delta }));

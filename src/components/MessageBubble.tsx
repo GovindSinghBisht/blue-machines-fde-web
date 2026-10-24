@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import RichText from "./RichText";
+import { downloadDocument } from "@/lib/api";
 import { SYSTEM_LABEL, humanize, seconds, sourceLabel } from "@/lib/format";
 import type { ChatMessage } from "@/lib/types";
 
@@ -67,6 +68,8 @@ export default function MessageBubble({ message, showDetails, busy, onConfirm, o
               {note.text}
             </p>
           ))}
+
+        {message.documents?.map((d) => <DocumentCard key={d.document_id} doc={d} />)}
 
         {message.action && (
           <ActionCard action={message.action} busy={busy} onConfirm={onConfirm} onCancel={onCancel} />
@@ -135,6 +138,34 @@ function ActionCard({
           {action.state === "confirmed" ? "Confirmed" : "Cancelled"}
         </p>
       )}
+    </div>
+  );
+}
+
+function DocumentCard({ doc }: { doc: NonNullable<ChatMessage["documents"]>[number] }) {
+  const [state, setState] = useState<"idle" | "busy" | "error">("idle");
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent-soft text-[11px] font-semibold text-accent">PDF</span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">Repayment statement{doc.financial_year ? ` · FY ${doc.financial_year}` : ""}</p>
+        <p className="truncate text-xs text-muted">{doc.loan_id ? `${doc.loan_id} · ` : ""}issued by the loan system</p>
+      </div>
+      <button
+        onClick={async () => {
+          setState("busy");
+          try {
+            await downloadDocument(doc.document_id, doc.file_name);
+            setState("idle");
+          } catch {
+            setState("error");
+          }
+        }}
+        disabled={state === "busy"}
+        className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-strong disabled:opacity-60"
+      >
+        {state === "busy" ? "Downloading…" : state === "error" ? "Retry" : "Download"}
+      </button>
     </div>
   );
 }
